@@ -1,6 +1,7 @@
 import React from "react";
-import Tabs from "@mui/joy/Tabs";
+import { Tabs, Box, Input } from "@mui/joy";
 import { useLocation } from "react-router-dom";
+import { useStore } from "../store/store.jsx";
 // Icon packs
 import ScienceIcon from "@mui/icons-material/Science";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -9,14 +10,16 @@ import MoodIcon from "@mui/icons-material/Mood";
 import SportsIcon from "@mui/icons-material/Sports";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SpaIcon from "@mui/icons-material/Spa";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 // Components
 import TopicChip from "./misc/TopicChip.jsx";
 import SmallArticleCard from "./misc/SmallArticleCard.jsx";
 
 import style from "../styles/modules/Home.module.scss";
 import { Typography } from "@mui/joy";
-const Search = (props) => {
+const Search = () => {
   const currentQuery = useLocation();
+  const store = useStore();
   const categories = [
     {
       categoryName: "Discover",
@@ -64,6 +67,18 @@ const Search = (props) => {
 
   return (
     <>
+      {store.screenWidth < 700 && (
+        <Box className={style.search}>
+          <Input
+            size="md"
+            placeholder="Search..."
+            sx={{ maxWidth: "200px" }}
+            variant="solid"
+            onKeyDown={store.search}
+            startDecorator={<SearchRoundedIcon />}
+          />
+        </Box>
+      )}
       <Tabs
         aria-label="Scrollable tabs"
         defaultValue={0}
@@ -84,7 +99,6 @@ const Search = (props) => {
               icon={category.icon}
               chipColor={category.chipColor}
               chipVariant={category.chipVariant}
-              getCategoryData={props.getCategoryData}
             />
           );
         })}
@@ -102,11 +116,11 @@ const Search = (props) => {
           Results for {currentQuery.pathname.replace("/search/", "")}
         </Typography>
         <div className={style.articleCards}>
-          {props.articles.map((article, idx) => {
+          {store.articles.map((article, idx) => {
             return (
               <SmallArticleCard
                 key={idx}
-                loading={props.loading}
+                loading={store.loading}
                 articleTitle={article.title}
                 articleImage={article.image}
                 articleSource={article.source}

@@ -1,5 +1,6 @@
 import React from "react";
-import Tabs from "@mui/joy/Tabs";
+import { useStore } from "../store/store.jsx";
+import { Box, Tabs, Input } from "@mui/joy";
 
 // Icon packs
 import ScienceIcon from "@mui/icons-material/Science";
@@ -9,13 +10,16 @@ import MoodIcon from "@mui/icons-material/Mood";
 import SportsIcon from "@mui/icons-material/Sports";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SpaIcon from "@mui/icons-material/Spa";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 // Components
 import TopicChip from "./misc/TopicChip.jsx";
 import HeadlineCard from "./misc/HeadlineCard.jsx";
 import SmallArticleCard from "./misc/SmallArticleCard.jsx";
 
 import style from "../styles/modules/Home.module.scss";
-const Home = (props) => {
+
+const Home = () => {
+  const store = useStore();
   const categories = [
     {
       categoryName: "Discover",
@@ -63,6 +67,18 @@ const Home = (props) => {
 
   return (
     <>
+      {store.screenWidth < 700 && (
+        <Box className={style.search}>
+          <Input
+            size="md"
+            placeholder="Search..."
+            sx={{ maxWidth: "200px" }}
+            variant="solid"
+            onKeyDown={store.search}
+            startDecorator={<SearchRoundedIcon />}
+          />
+        </Box>
+      )}
       <Tabs
         aria-label="Scrollable tabs"
         defaultValue={0}
@@ -83,19 +99,18 @@ const Home = (props) => {
               icon={category.icon}
               chipColor={category.chipColor}
               chipVariant={category.chipVariant}
-              getCategoryData={props.getCategoryData}
             />
           );
         })}
       </Tabs>
 
       <div className={style.homeBody}>
-        {props.articles.map((article, idx) => {
+        {store.articles.map((article, idx) => {
           if (idx == 0) {
             return (
               <div className={style.headline} key={idx}>
                 <HeadlineCard
-                  loading={props.loading}
+                  loading={store.loading}
                   articleTitle={article.title}
                   articleImage={article.image}
                   articleSource={article.source}
@@ -107,12 +122,12 @@ const Home = (props) => {
           }
         })}
         <div className={style.articleCards}>
-          {props.articles.map((article, idx) => {
+          {store.articles.map((article, idx) => {
             if (idx !== 0) {
               return (
                 <SmallArticleCard
                   key={idx}
-                  loading={props.loading}
+                  loading={store.loading}
                   articleTitle={article.title}
                   articleImage={article.image}
                   articleSource={article.source}

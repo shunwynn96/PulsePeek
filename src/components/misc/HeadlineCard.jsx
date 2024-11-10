@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   Card,
   CardCover,
@@ -10,20 +10,12 @@ import {
 } from "@mui/joy";
 import LaunchIcon from "@mui/icons-material/Launch";
 
+import { useStore } from "../../store/store";
+
 import style from "../../styles/modules/HeadlineCard.module.scss";
 const HeadlineCard = (props) => {
-  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+  const store = useStore();
 
-  useEffect(() => {
-    const handleResize = () => {
-      setScreenWidth(window.innerWidth);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
   return (
     <>
       <Card sx={{ height: "276px", width: "100%" }}>
@@ -60,7 +52,7 @@ const HeadlineCard = (props) => {
           </Typography>
         </CardContent>
       </Card>
-      {screenWidth > 1100 && (
+      {store.screenWidth > 1100 && (
         <Sheet variant="soft" className={style.description}>
           <Typography>
             <Skeleton loading={props.loading}>
