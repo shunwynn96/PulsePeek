@@ -83,7 +83,6 @@ export const StoreProvider = ({ children }) => {
     })
       .then((res) => {
         let articleList = res.data.articles;
-        console.log(articleList);
         for (let articleIdx in res.data.articles) {
           articleList[articleIdx].duration = dateToDuration(
             articleList[articleIdx].publishedAt
