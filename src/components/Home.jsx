@@ -73,7 +73,7 @@ const Home = () => {
             size="md"
             placeholder="Search..."
             sx={{ maxWidth: "200px" }}
-            variant="solid"
+            variant="soft"
             onKeyDown={store.search}
             startDecorator={<SearchRoundedIcon />}
           />

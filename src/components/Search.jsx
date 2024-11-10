@@ -73,7 +73,7 @@ const Search = () => {
             size="md"
             placeholder="Search..."
             sx={{ maxWidth: "200px" }}
-            variant="solid"
+            variant="soft"
             onKeyDown={store.search}
             startDecorator={<SearchRoundedIcon />}
           />
@@ -111,7 +111,6 @@ const Search = () => {
             alignSelf: "start",
           }}
           level="title-lg"
-          textColor="#fff"
         >
           Results for {currentQuery.pathname.replace("/search/", "")}
         </Typography>
