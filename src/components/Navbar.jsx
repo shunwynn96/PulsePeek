@@ -32,7 +32,6 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    console.log("I RAN");
     navigate("/");
     store.getTopHeadlineData();
   }, [store.country]);

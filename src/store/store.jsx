@@ -94,7 +94,6 @@ export const StoreProvider = ({ children }) => {
         setLoading(false);
       })
       .catch((err) => {
-        console.log(err);
         if (err.response.status == 403 || err.response.status == 400) {
           if (keyNum == 3) {
             keyNum = 0;
