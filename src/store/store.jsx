@@ -10,7 +10,9 @@ export const StoreProvider = ({ children }) => {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [keyNumber, setKeyNumber] = useState(0);
+  const [country, setCountry] = useState("us");
+
+  let keyNum = 0;
   const keyList = [
     "VITE_GNEWS_0",
     "VITE_GNEWS_1",
@@ -48,9 +50,9 @@ export const StoreProvider = ({ children }) => {
   const getCategoryData = (category) => {
     setLoading(true);
     getCategory({
-      country: "us",
+      country: country,
       category: category.toLowerCase(),
-      apiKey: import.meta.env[keyList[keyNumber]],
+      apiKey: import.meta.env[keyList[keyNum]],
     })
       .then((res) => {
         let articleList = res.data.articles;
@@ -63,13 +65,13 @@ export const StoreProvider = ({ children }) => {
         setLoading(false);
       })
       .catch((err) => {
-        if (err.response.status == 403) {
-          if (keyNumber == 3) {
-            setKeyNumber(0);
-            getCategoryData();
+        if (err.response.status == 403 || err.response.status == 400) {
+          if (keyNum == 3) {
+            keyNum = 0;
+            getCategoryData(category);
           } else {
-            setKeyNumber(keyNumber + 1);
-            getCategoryData();
+            keyNum++;
+            getCategoryData(category);
           }
         }
       });
@@ -78,8 +80,8 @@ export const StoreProvider = ({ children }) => {
   const getTopHeadlineData = () => {
     setLoading(true);
     getTopHeadlines({
-      country: "us",
-      apiKey: import.meta.env[keyList[keyNumber]],
+      country: country,
+      apiKey: import.meta.env[keyList[keyNum]],
     })
       .then((res) => {
         let articleList = res.data.articles;
@@ -92,12 +94,13 @@ export const StoreProvider = ({ children }) => {
         setLoading(false);
       })
       .catch((err) => {
-        if (err.response.status == 403) {
-          if (keyNumber == 3) {
-            setKeyNumber(0);
+        console.log(err);
+        if (err.response.status == 403 || err.response.status == 400) {
+          if (keyNum == 3) {
+            keyNum = 0;
             getTopHeadlineData();
           } else {
-            setKeyNumber(keyNumber + 1);
+            keyNum++;
             getTopHeadlineData();
           }
         }
@@ -107,9 +110,9 @@ export const StoreProvider = ({ children }) => {
   const getSearchData = (searchQuery) => {
     setLoading(true);
     getSearch({
-      country: "us",
+      country: country,
       q: searchQuery,
-      apiKey: import.meta.env[keyList[keyNumber]],
+      apiKey: import.meta.env[keyList[keyNum]],
     })
       .then((res) => {
         let articleList = res.data.articles;
@@ -122,13 +125,13 @@ export const StoreProvider = ({ children }) => {
         setLoading(false);
       })
       .catch((err) => {
-        if (err.response.status == 403) {
-          if (keyNumber == 3) {
-            setKeyNumber(0);
-            getSearchData();
+        if (err.response.status == 403 || err.response.status == 400) {
+          if (keyNum == 3) {
+            keyNum = 0;
+            getSearchData(searchQuery);
           } else {
-            setKeyNumber(keyNumber + 1);
-            getSearchData();
+            keyNum++;
+            getSearchData(searchQuery);
           }
         }
       });
@@ -145,6 +148,8 @@ export const StoreProvider = ({ children }) => {
         getCategoryData,
         getTopHeadlineData,
         getSearchData,
+        country,
+        setCountry,
       }}
     >
       {children}

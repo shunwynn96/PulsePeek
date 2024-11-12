@@ -1,7 +1,6 @@
 import React from "react";
 import { useStore } from "../store/store.jsx";
 import { Box, Tabs, Input } from "@mui/joy";
-
 // Icon packs
 import ScienceIcon from "@mui/icons-material/Science";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";

@@ -8,6 +8,14 @@
   width: calc(100% - 500px);
   font-size: 16px;
 
+  & p {
+    display: -webkit-box;
+    -webkit-line-clamp: 6; /* Limit to 3 lines */
+    -webkit-box-orient: vertical; /* Ensure the text is treated vertically */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   & .linkButton {
     margin-top: 1rem;
     width: 100%;
