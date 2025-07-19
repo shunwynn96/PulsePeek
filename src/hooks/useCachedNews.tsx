@@ -20,20 +20,29 @@ interface CachedArticle {
   updated_at: string;
 }
 
-const GNEWS_API_KEY = 'e9c4d437426b91736f2718aeebaefe7b';
-const GNEWS_BASE_URL = 'https://gnews.io/api/v4';
+import { useGNews } from './useGNews';
+
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
-export const useCachedNews = (category: string = 'general', searchQuery: string = '') => {
+export const useCachedNews = (category: string = 'general', searchQuery: string = '', country: string = 'us') => {
   const [shouldFetchFromAPI, setShouldFetchFromAPI] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Use the GNews hook which handles API key rotation
+  const { data: apiData, isLoading: apiLoading, error: apiError } = useGNews(
+    category === 'All' ? 'general' : category, 
+    searchQuery, 
+    country
+  );
 
   // Check if we need fresh data from the API
   const checkCacheAge = async () => {
     try {
+      const cacheKey = `${country}-${category === 'All' ? 'general' : category.toLowerCase()}`;
       const { data: cachedData, error } = await supabase
         .from('cached_articles')
         .select('created_at')
-        .eq('category', category === 'All' ? 'general' : category.toLowerCase())
+        .eq('category', cacheKey)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -56,42 +65,15 @@ export const useCachedNews = (category: string = 'general', searchQuery: string 
     }
   };
 
-  // Fetch fresh data from GNews API
-  const fetchFromAPI = async () => {
-    let url = `${GNEWS_BASE_URL}/top-headlines?apikey=${GNEWS_API_KEY}&lang=en&max=10`;
-    
-    if (category !== 'All') {
-      url += `&category=${category.toLowerCase()}`;
-    }
-    
-    if (searchQuery.trim()) {
-      url = `${GNEWS_BASE_URL}/search?apikey=${GNEWS_API_KEY}&q=${encodeURIComponent(searchQuery)}&lang=en&max=10`;
-    }
-
-    console.log('Fetching fresh data from API:', url);
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch news: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Cache the new data
-    await cacheArticles(data.articles, category === 'All' ? 'general' : category);
-    
-    return data;
-  };
-
   // Cache articles in the database
   const cacheArticles = async (articles: GNewsArticle[], categoryToCache: string) => {
     try {
-      // Clear old articles for this category
+      const cacheKey = `${country}-${categoryToCache.toLowerCase()}`;
+      // Clear old articles for this category-language combination
       await supabase
         .from('cached_articles')
         .delete()
-        .eq('category', categoryToCache.toLowerCase());
+        .eq('category', cacheKey);
 
       // Insert new articles
       const articlesToInsert = articles.map((article, index) => ({
@@ -107,7 +89,7 @@ export const useCachedNews = (category: string = 'general', searchQuery: string 
         published_at: article.publishedAt,
         source_name: article.source.name,
         source_url: article.source.url,
-        category: categoryToCache.toLowerCase()
+        category: cacheKey
       }));
 
       const { error } = await supabase
@@ -126,10 +108,11 @@ export const useCachedNews = (category: string = 'general', searchQuery: string 
 
   // Fetch cached data from database
   const fetchCachedData = async (): Promise<{ totalArticles: number; articles: GNewsArticle[] }> => {
+    const cacheKey = `${country}-${category === 'All' ? 'general' : category.toLowerCase()}`;
     const { data: cachedData, error } = await supabase
       .from('cached_articles')
       .select('*')
-      .eq('category', category === 'All' ? 'general' : category.toLowerCase())
+      .eq('category', cacheKey)
       .order('published_at', { ascending: false });
 
     if (error) {
@@ -157,28 +140,63 @@ export const useCachedNews = (category: string = 'general', searchQuery: string 
     };
   };
 
-  // Check cache age on mount and category change
+  // Check cache age on mount and category/language change
   useEffect(() => {
+    setIsTransitioning(true);
     if (!searchQuery.trim()) { // Only check cache for non-search queries
       checkCacheAge();
     } else {
       setShouldFetchFromAPI(true); // Always fetch fresh data for searches
     }
-  }, [category, searchQuery]);
+  }, [category, searchQuery, country]);
 
-  // Main query - fetch from API if needed, otherwise use cached data
-  return useQuery({
-    queryKey: ['cached-news', category, searchQuery, shouldFetchFromAPI],
+  // Force fresh fetch when country changes
+  useEffect(() => {
+    
+    setIsTransitioning(true);
+    setShouldFetchFromAPI(true);
+  }, [country]);
+
+  // Cache new API data when it arrives
+  useEffect(() => {
+    if (apiData && (shouldFetchFromAPI || searchQuery.trim())) {
+      cacheArticles(apiData.articles, category === 'All' ? 'general' : category);
+    }
+  }, [apiData, shouldFetchFromAPI, searchQuery, category]);
+
+  // Reset transitioning state when API loading completes
+  useEffect(() => {
+    if (!apiLoading && apiData) {
+      setIsTransitioning(false);
+    }
+  }, [apiLoading, apiData]);
+
+  // Main query - use API data if fetching from API, otherwise use cached data
+  const query = useQuery({
+    queryKey: ['cached-news', category, searchQuery, country, shouldFetchFromAPI],
     queryFn: async () => {
-      if (shouldFetchFromAPI || searchQuery.trim()) {
-        return await fetchFromAPI();
-      } else {
-        return await fetchCachedData();
+      try {
+        if ((shouldFetchFromAPI || searchQuery.trim()) && apiData) {
+          return apiData;
+        } else if (!shouldFetchFromAPI && !searchQuery.trim()) {
+          const cachedResult = await fetchCachedData();
+          return cachedResult;
+        }
+        return { totalArticles: 0, articles: [] };
+      } finally {
+        // Always reset transitioning state when query completes
+        setIsTransitioning(false);
       }
     },
+    enabled: (!shouldFetchFromAPI && !searchQuery.trim()) || (shouldFetchFromAPI && apiData !== undefined),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
+
+  return {
+    ...query,
+    isLoading: query.isLoading || isTransitioning || (shouldFetchFromAPI && apiLoading)
+  };
 };

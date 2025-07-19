@@ -7,7 +7,42 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserInteractions } from "@/hooks/useUserInteractions";
+import { useGNews } from "@/hooks/useGNews";
 import Comments from "./Comments";
+
+interface RelatedArticleCardProps {
+  title: string;
+  excerpt: string;
+  imageUrl: string;
+  publishedAt: string;
+  onClick: () => void;
+}
+
+const RelatedArticleCard = ({ title, excerpt, imageUrl, publishedAt, onClick }: RelatedArticleCardProps) => (
+  <div 
+    onClick={onClick}
+    className="group cursor-pointer p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
+  >
+    <div className="flex space-x-3">
+      <img
+        src={imageUrl}
+        alt={title}
+        className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+      />
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold text-sm text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 mb-1">
+          {title}
+        </h4>
+        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
+          {excerpt}
+        </p>
+        <span className="text-xs text-gray-500 dark:text-gray-500">
+          {publishedAt}
+        </span>
+      </div>
+    </div>
+  </div>
+);
 
 interface Article {
   id: number;
@@ -30,6 +65,11 @@ const NewsCard = ({ article }: NewsCardProps) => {
   const { addBookmark, removeBookmark, isBookmarked, addToReadingHistory } = useUserInteractions();
   const [isOpen, setIsOpen] = useState(false);
   const [readStartTime, setReadStartTime] = useState<number | null>(null);
+  const [selectedRelatedArticle, setSelectedRelatedArticle] = useState<any>(null);
+  
+  // Get related articles from the same category, excluding current article
+  const { data: relatedData } = useGNews(article.category === 'All' ? 'general' : article.category.toLowerCase());
+  const relatedArticles = relatedData?.articles?.filter(a => a.title !== article.title).slice(0, 4) || [];
 
   const handleBookmarkToggle = () => {
     if (!user) return;
@@ -268,6 +308,39 @@ const NewsCard = ({ article }: NewsCardProps) => {
             </div>
 
             <Comments articleId={article.id} />
+            
+            {/* Related Articles Section */}
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                Related Articles
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {relatedArticles.map((relatedArticle, index) => (
+                  <RelatedArticleCard 
+                    key={index}
+                    title={relatedArticle.title}
+                    excerpt={relatedArticle.description}
+                    imageUrl={relatedArticle.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=200&fit=crop'}
+                    publishedAt={formatDistanceToNow(new Date(relatedArticle.publishedAt)) + ' ago'}
+                    onClick={() => {
+                      const relatedArticleData = {
+                        id: relatedArticle.title.length * Math.random(), // Generate simple ID
+                        title: relatedArticle.title,
+                        excerpt: relatedArticle.description,
+                        category: article.category,
+                        author: relatedArticle.source.name,
+                        publishedAt: relatedArticle.publishedAt,
+                        imageUrl: relatedArticle.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=200&fit=crop',
+                        readTime: '5 min read',
+                        url: relatedArticle.url
+                      };
+                      setSelectedRelatedArticle(relatedArticleData);
+                      setIsOpen(false); // Close current dialog
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2 mt-6">
@@ -298,6 +371,17 @@ const NewsCard = ({ article }: NewsCardProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Related Article Dialog */}
+      {selectedRelatedArticle && (
+        <Dialog open={!!selectedRelatedArticle} onOpenChange={() => setSelectedRelatedArticle(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <NewsCard 
+              article={selectedRelatedArticle} 
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

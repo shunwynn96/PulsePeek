@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Moon, Sun, Search, Menu, LogIn, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import NewsCard from "@/components/NewsCard";
 import CategoryTabs from "@/components/CategoryTabs";
@@ -9,17 +10,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCachedNews } from "@/hooks/useCachedNews";
 import { transformGNewsArticle } from "@/utils/newsTransform";
 import { toast } from "@/hooks/use-toast";
+import { useCountry } from "@/contexts/CountryContext";
+import { CountryDropdown } from "@/components/CountryDropdown";
 
 const Index = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const { user, signOut, loading: authLoading } = useAuth();
+  const { currentCountry } = useCountry();
   const navigate = useNavigate();
 
   const { data: newsData, isLoading: newsLoading, error } = useCachedNews(
     selectedCategory === "All" ? "general" : selectedCategory, 
-    searchQuery
+    searchQuery,
+    currentCountry.code
   );
 
   // Show welcome toast only once per login session
@@ -123,6 +128,7 @@ const Index = () => {
               </div>
 
               <div className="flex items-center space-x-2">
+                <CountryDropdown />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -183,22 +189,6 @@ const Index = () => {
 
         {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
-          {/* Hero Section */}
-          <section className="mb-12">
-            <div className="relative h-96 rounded-2xl overflow-hidden bg-gradient-to-r from-blue-600 to-purple-700 dark:from-blue-800 dark:to-purple-900">
-              <div className="absolute inset-0 bg-black/20" />
-              <div className="relative h-full flex items-center justify-center text-center text-white p-8">
-                <div>
-                  <h2 className="text-4xl md:text-6xl font-bold mb-4">
-                    Stay Informed
-                  </h2>
-                  <p className="text-xl md:text-2xl opacity-90 max-w-2xl">
-                    Get the latest news from around the world, powered by GNews
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* Category Tabs */}
           <CategoryTabs
@@ -220,9 +210,44 @@ const Index = () => {
             )}
             
             {newsLoading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600 dark:text-gray-400">Loading news...</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    {/* Image skeleton */}
+                    <Skeleton className="h-48 w-full rounded-none" />
+                    
+                    <div className="p-6 space-y-4">
+                      {/* Category badge skeleton */}
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                      
+                      {/* Title skeleton - 2 lines */}
+                      <div className="space-y-2">
+                        <Skeleton className="h-6 w-full" />
+                        <Skeleton className="h-6 w-4/5" />
+                      </div>
+                      
+                      {/* Description skeleton - 3 lines */}
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                      
+                      {/* Author and date skeleton */}
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center space-x-2">
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-1 w-1 rounded-full" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                      
+                      {/* Button skeleton */}
+                      <Skeleton className="h-10 w-32 rounded-md" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : articles.length === 0 ? (
               <div className="text-center py-12">
